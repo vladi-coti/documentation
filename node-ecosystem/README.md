@@ -23,7 +23,7 @@ Running a COTI node offers several benefits:
 The **COTI Node Ecosystem** is the product surface that lets anyone run, monitor, and earn rewards from a COTI full node through a guided flow. It is composed of:
 
 * a web app that guides operators from zero to a live, reward-eligible node (see [Networks](./#networks) below for the URLs),
-* an automated installer that stands up a COTI full node on Ubuntu 24.04 LTS in a single command,
+* an automated installer that stands up a COTI full node on **Ubuntu 24.04 LTS** (Linux servers) or a certified **Windows 11 + WSL 2 + Ubuntu 26.04 LTS** setup in a single command,
 * a set of backend services that discover peers, mint node NFTs, monitor uptime, and distribute rewards each epoch.
 
 This section documents the product — what it does, how to install a node through it, how its UI is organized, and the terminology you will encounter along the way.
@@ -32,16 +32,18 @@ This section documents the product — what it does, how to install a node throu
 
 The same **COTI full node** software powers the network whether you onboard through the web app or build the stack yourself.
 
-**If you are new to running a node**, start with the **web app wizard** — it is the fastest path for most people: open the web app from [Networks](#networks), follow the setup flow, then use [**Installation**](installation.md) and the [**UI guide**](ui-guide.md) for details. [**Manual full node setup**](manual-full-node.md) is for operators who want Git clone, Docker Compose, and scripts **without** the wizard.
+**If you are new to running a node**, start with the **web app wizard** — it is the fastest path for most people: open the web app from [Networks](#networks), follow the setup flow, then read [**Installation**](installation.md) and the matching subpage — [**Wizard tunnel**](installation-wizard-tunnel.md) (`--with-frp`) or [**Own domain (Nginx)**](installation-own-domain.md) (`--nginx`) — plus the [**UI guide**](ui-guide/README.md). [**Manual full node setup**](manual-full-node.md) is for operators who want Git clone, Docker Compose, and scripts **without** the wizard.
 
 | Path | When to use it | Documentation |
 | ---- | --------------- | --------------- |
-| **Web app wizard (recommended first)** | Guided flow, one-liner installer from [Networks](#networks), HTTPS, automatic monitoring hooks. | [**Installation**](installation.md), [**UI guide**](ui-guide.md) |
-| **Manual (without the wizard)** | You administer the stack yourself — not the Nodes web UI installer. | [**Manual full node setup**](manual-full-node.md) |
+| **Web app wizard (recommended first)** | Guided flow and one-liner from [Networks](#networks). Use **tunnel** (`--with-frp`, COTI subdomain, no host TLS) or **own domain + Nginx** (`--nginx`). | [**Installation**](installation.md), [**Wizard tunnel**](installation-wizard-tunnel.md), [**Own domain**](installation-own-domain.md), [**UI guide**](ui-guide/README.md) |
+| **Manual (without the wizard)** | You administer the stack yourself — not the Nodes web UI installer. | Under [**Installation**](installation.md): [**Manual full node setup**](manual-full-node.md) |
 
 The [**COTI Node Ecosystem Litepaper**](coti-node-ecosystem-litepaper.md) summarizes the Node Economy; incentive rules apply to **both** paths when you meet eligibility.
 
-Operators on the **manual** path can still earn **rewards** when they satisfy the same thresholds as wizard users (FQDN, reachability, uptime, license / holdings, etc.) — see [**Installation**](installation.md) and [**Manual full node setup**](manual-full-node.md).
+**Certified OS and hardware** for both paths are documented once on [**Server requirements**](server-requirements.md).
+
+Operators on the **manual** path can still earn **rewards** when they satisfy the same thresholds as wizard users (FQDN, reachability, uptime, license / holdings, etc.) — see the [**Installation**](installation.md) section, especially [**Manual full node setup**](manual-full-node.md).
 
 ## Networks
 
@@ -49,16 +51,15 @@ The ecosystem runs on two networks. All guidance in this section applies to both
 
 |                                 | **Testnet**                                              | **Mainnet**                              |
 | ------------------------------- | -------------------------------------------------------- | ---------------------------------------- |
-| Web app                         | [dev.nodes.coti.io](https://dev.nodes.coti.io)           | [nodes.coti.io](https://nodes.coti.io)   |
+| Web app                         | [testnet.nodes.coti.io](https://testnet.nodes.coti.io)   | [nodes.coti.io](https://nodes.coti.io)   |
 | Status page (public, hot nodes) | [testnet.uptime.coti.io](https://testnet.uptime.coti.io) | [uptime.coti.io](https://uptime.coti.io) |
-| Recommended node disk space     | ≥ 100 GB                                                 | ≥ 700 GB                                 |
 | Installer host                  | `fullnode.testnet.coti.io`                               | `fullnode.mainnet.coti.io`               |
 
 The **status page** is the public [Better Stack](https://betterstack.com/) dashboard where every hot node's monitor is visible. It is the fastest way to eyeball the current health of the whole fleet.
 
 ## What the COTI Node Ecosystem gives you
 
-* **One-command install** of a COTI full node on a certified OS (Ubuntu 24.04 LTS) with HTTPS and a proxy already configured.
+* **One-command install** of a COTI full node on a certified OS (**Ubuntu 24.04 LTS** on Linux, or **Windows 11** with **WSL 2** and **Ubuntu 26.04 LTS**), with either a **COTI-managed tunnel** (no host Nginx) or **HTTPS on your server** when you bring your own domain.
 * **Live visibility** into the node fleet — Who is online, which nodes are hot, how many earned rewards this epoch.
 * **Per-operator dashboard** for your own node(s): thermal state, uptime, latency, rewards history, eligibility.
 * **Automatic monitoring registration** in Better Stack once your node is recognized by the network.
@@ -97,23 +98,26 @@ flowchart LR
 ```
 
 {% hint style="warning" %}
-**A valid DNS (FQDN) is required to earn rewards.** The ecosystem measures your node's uptime by reaching its JSON-RPC endpoint through the domain name you configure. A node without a reachable DNS can still sync the chain, but it will **not** be credited with uptime and therefore will **not** receive rewards. See [installation.md](installation.md) for DNS prerequisites.
+**A valid DNS (FQDN) is required to earn rewards.** The ecosystem measures your node's uptime by reaching its JSON-RPC endpoint through the domain name you configure. A node without a reachable DNS can still sync the chain, but it will **not** be credited with uptime and therefore will **not** receive rewards. See [**Own domain (Nginx + TLS)**](installation-own-domain.md) for DNS and port prerequisites (or [**Wizard tunnel**](installation-wizard-tunnel.md) for the COTI-assigned hostname path).
 {% endhint %}
 
 ## Where to go next
 
-**Start here (wizard — fastest for most operators):**
+**Installation (pick your path — order matches the docs sidebar):**
 
-* [**Installation**](installation.md) — what the automated `curl | sudo bash` installer does, DNS and server requirements.
-* [**UI guide**](ui-guide.md) — page-by-page tour of the web app, spin-up flow, and warm-up period.
+* [**Installation hub**](installation.md) — overview, shared flags, after-wizard notes.
+* [**Wizard tunnel**](installation-wizard-tunnel.md) (`--with-frp`) — COTI subdomain, FRP, no host TLS.
+* [**Own domain (Nginx + TLS)**](installation-own-domain.md) (`--nginx`) — your FQDN, Let’s Encrypt on the host.
+* [**Manual full node setup**](manual-full-node.md) — Git clone, Docker Compose, ports, restart/stop, FAQ (no wizard; OS/hardware still [**Server requirements**](server-requirements.md)).
 
-**Advanced / self-managed:**
+**Also:**
 
-* [**Manual full node setup (without the web app wizard)**](manual-full-node.md) — hardware, Docker Compose, ports, Git clone, restart/stop, FAQ.
+* [**Server requirements**](server-requirements.md) — certified OS, Docker stack, hardware and disk.
+* [**UI guide**](ui-guide/README.md) — wizard walkthrough and warm-up.
 
 **Reference:**
 
 * [**COTI Node Ecosystem Litepaper**](coti-node-ecosystem-litepaper.md) — Node Economy (PDF embed).
 * [**Features**](features.md) — everything the product does, end-to-end.
 * [**Backend services**](backend-services.md) — the five services behind the ecosystem, described from an operator's perspective.
-* [**Glossary**](glossary.md) — thermal states, NFT states, warm-up windows, eligibility, and other terms you will see in the UI.
+* [**Glossary**](ui-guide/glossary.md) — thermal states, NFT states, warm-up windows, eligibility, and other terms you will see in the UI.

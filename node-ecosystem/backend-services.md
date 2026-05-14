@@ -1,6 +1,6 @@
-# Backend services
+# Backend Services
 
-The ecosystem is powered by five cooperating backend services. Operators do not interact with them directly — the web app (see [Networks](README.md#networks) for URLs) is the only interface. This page describes each service from the operator's perspective: **what it does for you** and **what its outputs look like in the UI**.
+The ecosystem is powered by five cooperating backend services. Operators do not interact with them directly — the web app (see [Networks](./#networks) for URLs) is the only interface. This page describes each service from the operator's perspective: **what it does for you** and **what its outputs look like in the UI**.
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,7 @@ flowchart LR
 
 **What it does for you**
 
-Peer Discovery is the service that first *sees* your node. It repeatedly calls `admin_peers` on a set of reference nodes and records which peers are currently connected. As soon as your node shows up in those responses, it is considered **online** in the ecosystem.
+Peer Discovery is the service that first _sees_ your node. It repeatedly calls `admin_peers` on a set of reference nodes and records which peers are currently connected. As soon as your node shows up in those responses, it is considered **online** in the ecosystem.
 
 Peer Discovery is also responsible for the **thermal state machine**:
 
@@ -54,7 +54,7 @@ Because the NFT is soulbound, it cannot be transferred — it is bound to the wa
 **Where it shows up in the UI**
 
 * The node name and avatar shown everywhere the node appears (dashboard, nodes table, node-details modal).
-* The **Edit Node** flow (`/edit-node`) where you rename your node — the name is stored on the NFT.
+* The **Edit Node** flow (`/edit-node`) where you update **NFT metadata** — node name, image URI, and optional more-info URL — all stored on-chain on the Soulbound NFT.
 * The "No Node Detected" / "Warmup Complete" states on `/my-nodes`, which depend on whether the NFT exists for the connected wallet.
 
 ## Better Stack Integration Service
@@ -68,10 +68,10 @@ The operator does not configure or pay for Better Stack — the ecosystem manage
 **Where it shows up in the UI**
 
 * The **all-time uptime percentage** displayed for your node in the dashboard and nodes table.
-* A public **status page** that aggregates every hot node's monitor state (up / down). The URL is listed in [Networks](README.md#networks).
+* A public **status page** that aggregates every hot node's monitor state (up / down). The URL is listed in [Networks](./#networks).
 
 {% hint style="info" %}
-Because monitoring happens over HTTPS against your FQDN, a node without a valid DNS cannot be monitored — see [installation.md](installation.md) and the [Glossary](glossary.md) FQDN entry.
+Because monitoring happens over HTTPS against your public RPC hostname, a node without valid DNS / routing cannot be monitored — see [**Installation**](installation.md) ([**Own domain**](installation-own-domain.md), [**Wizard tunnel**](installation-wizard-tunnel.md)) and the [Glossary](ui-guide/glossary.md) FQDN entry.
 {% endhint %}
 
 ## Node Health Monitor
@@ -95,7 +95,7 @@ At the end of each **103-hour epoch**, the rewards service:
 
 1. Snapshots each node operator's USDC and COTI holdings.
 2. Reads each node's uptime for the epoch from the monitoring platform.
-3. Applies the eligibility rules: **uptime is mandatory**, and the operator must meet **at least one** of the USDC-holdings threshold **or** the COTI-holdings threshold (with whitelist overrides for specific operators).
+3. Applies the eligibility rules: **uptime is mandatory** on every path, and the operator must satisfy **Path 1** (USDC and COTI each ≥ combo thresholds, plus uptime) **or** **Path 2** (COTI ≥ solo threshold, plus uptime), with whitelist overrides for specific operators.
 4. Allocates each eligible node its share of the epoch's reward pool in the on-chain **rewards smart contract**.
 5. Records the per-epoch result: earned amount, snapshot values, uptime %, eligibility.
 
