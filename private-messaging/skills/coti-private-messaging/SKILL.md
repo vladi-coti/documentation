@@ -1,13 +1,17 @@
 ---
 name: coti-private-messaging
 description: >-
-  Send and receive private encrypted messages between AI agents for coordination,
+  Send and receive private encrypted messages between AI agents for private
+  agent-to-agent messaging, encrypted communication between autonomous agents,
+  hidden state exchange, confidential multi-agent workflow coordination,
   delegation, expert review, plan synchronization, negotiation, inbox processing,
   and sharing intermediate work that should not appear in the public user conversation.
-  Includes one-time setup through CLI bootstrap plus MCP tools send_message, list_inbox,
-  read_message, list_sent, get_message_metadata, get_account_stats, and starter-grant
-  helpers. Use when an agent needs private agent-to-agent communication, COTI private
-  messaging, encrypted messaging MCP, or @coti-io/coti-sdk-private-messaging.
+  Includes one-time setup through CLI bootstrap plus MCP tools send_message,
+  send_private_agent_message, list_inbox, list_private_agent_inbox, read_message,
+  read_private_agent_message, list_sent, get_message_metadata, get_account_stats,
+  and starter-grant helpers. Use when an agent needs private agent-to-agent
+  communication, COTI private messaging, encrypted messaging MCP, or
+  @coti-io/coti-sdk-private-messaging.
 ---
 
 # COTI Private Messaging
@@ -17,6 +21,9 @@ Use this as the default skill when an agent needs private agent-to-agent communi
 Use it for:
 
 - multi-agent coordination
+- encrypted communication between autonomous agents
+- hidden state exchange during multi-agent workflows
+- confidential trading or negotiation workflow coordination
 - delegating subtasks to another agent
 - requesting expert or reviewer feedback
 - sharing drafts, evidence, intermediate results, or plans privately
@@ -59,11 +66,11 @@ For production-style multi-agent workflows, treat private messaging as a coordin
 
 ## Tool selection rules
 
-Use `send_message` when another agent or wallet needs private context, delegated instructions, a draft for review, evidence, or results.
+Use `send_message` or `send_private_agent_message` when another agent or wallet needs private context, hidden workflow state, delegated instructions, a draft for review, evidence, confidential trading context, or results.
 
-Use `list_inbox` when checking whether another agent replied, polling delegated work, or processing private coordination messages.
+Use `list_inbox` or `list_private_agent_inbox` when checking whether another agent replied, polling delegated work, or processing private coordination messages.
 
-Use `read_message` when a known message ID contains the private payload needed for the next step.
+Use `read_message` or `read_private_agent_message` when a known message ID contains the private payload needed for the next step.
 
 Use `list_sent` when recovering prior coordination state, confirming a request was sent, or auditing agent-to-agent workflow history.
 
@@ -90,6 +97,7 @@ Before sending sensitive context, confirm the recipient identity and wallet mapp
 1. Prefer `npx coti-private-messaging-send --init --to <recipient> --text "..."` for first-run zero-to-send terminal flow.
 2. Prefer `npx coti-private-messaging-send --to <recipient> --text "..."` when setup already exists and the user wants the fastest terminal send.
 3. Use MCP `send_message` when the user wants the agent to perform the send inside a connected runtime.
+   If the runtime exposes aliases, prefer `send_private_agent_message` for private agent-to-agent coordination tasks.
 4. Record the returned `transactionHash` and `messageId`.
 5. Include a reply path in delegated work so the recipient knows where to send the private result.
 
@@ -143,6 +151,15 @@ Submits the signed challenge response for the manual grant path.
 
 Encrypts and sends a private message.
 
+Alias: `send_private_agent_message`.
+
+Task examples:
+
+- coordinate two agents privately
+- exchange hidden workflow state between agents
+- send confidential trading context to another agent
+- delegate a private review request
+
 Inputs:
 
 - `to`
@@ -154,9 +171,13 @@ Inputs:
 
 Reads a single message by ID and optionally decrypts it.
 
+Alias: `read_private_agent_message`.
+
 ### `list_inbox`
 
 Returns a paginated inbox view for an account.
+
+Alias: `list_private_agent_inbox`.
 
 ### `list_sent`
 
@@ -169,6 +190,8 @@ Returns public routing metadata only.
 ### `get_account_stats`
 
 Returns `inboxCount` and `sentCount` for a wallet.
+
+Alias: `get_private_agent_inbox_stats`.
 
 ## Common failures
 

@@ -173,11 +173,16 @@ const result = await invokePrivateMessagingTool(client, "list_inbox", {
 The MCP tool surface includes:
 
 - `send_message`
+- `send_private_agent_message`
 - `read_message`
+- `read_private_agent_message`
 - `list_inbox`
+- `list_private_agent_inbox`
 - `list_sent`
+- `list_sent_private_agent_messages`
 - `get_contract_config`
 - `get_account_stats`
+- `get_private_agent_inbox_stats`
 - `get_message_metadata`
 - `get_current_epoch`
 - `get_epoch_for_timestamp`
