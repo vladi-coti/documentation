@@ -104,7 +104,7 @@ Avoid wording such as “recoverable from any wallet using the same address.”
 1. The active AES key is session-only React state and is wallet-bound to prevent cross-account leakage.
 2. Encrypted backups are optional and host-defined through `configureCotiPlugin`. The user can turn **Save Locally** off for non-Snap flows.
 3. A stored blob alone is not enough to recover the AES key, but possession of **both** the encrypted backup and a matching EIP-712 wrap signature is sufficient. Treat that signature as a sensitive unlock action.
-4. EIP-712 domain separation does not bind the request to a dApp origin; another site can recreate the same public signing payload.
+4. **Cross-app restore is intentional.** Origin binding is omitted so the same encrypted blob can be restored by other dApps that use the COTI wallet plugin (with a compatible wallet signature). Domain separation is not origin security; only sign the unlock request in official or explicitly trusted COTI applications. See [AES backup security model](aes-backup-security.md#cross-app-restore-intentional).
 5. Manual AES key input is session-only unless **Save Locally** (or Snap persistence) stores it.
 6. Locking private balances clears plaintext session AES state and hides balances. Snap keys and encrypted backups remain intact for the next unlock.
 

@@ -39,17 +39,29 @@ The wrap signature is therefore a **reusable decryption credential** for that ba
 
 For localStorage this means: any script on the same origin that can read `localStorage` can obtain the blob; decrypting it still requires tricking the user into producing the wrap signature (or already having that signature).
 
+## Cross-app restore (intentional)
+
+The wallet plugin is used by **multiple dApps**. Cross-app restore of the **same encrypted blob** is **supported and expected**.
+
+**Origin binding is intentionally omitted** from the backup wrap EIP-712 message and domain. The unlock protocol is app-agnostic on purpose so that:
+
+* App A can create an encrypted backup blob;
+* App B (another official or trusted COTI plugin integration) can restore from that same blob;
+* when the user controls a compatible wallet that reproduces the same EIP-712 signing material.
+
+This is a deliberate **portability vs phishing-resistance** tradeoff. Do not document or imply that “only the dApp that created the backup can unlock it.”
+
 ## Domain separation is not origin binding
 
 The v2 EIP-712 domain includes a protocol salt and version. That separates this protocol from unrelated typed-data messages.
 
-It does **not**:
+Because origin binding is omitted by design, domain separation does **not**:
 
 * bind the request to a specific dApp origin;
 * stop another site from recreating the same public EIP-712 payload and asking the user to sign it;
 * make recovery phishing-resistant by itself.
 
-If a malicious (or compromised) dApp obtains the encrypted blob **and** tricks the user into signing the wrap message, it can decrypt the AES key.
+If a malicious (or compromised) dApp obtains the encrypted blob **and** tricks the user into signing the wrap message, it can decrypt the AES key. Users must only approve the unlock signature in official or explicitly trusted COTI applications.
 
 ### User-facing signing warning
 
