@@ -25,7 +25,7 @@ configureCotiPlugin({
 | `cotiTestnetRpcUrl` | `string` | — | COTI testnet RPC URL for PoD SDK tracking |
 | `walletConnectProjectId` | `string` | — | WalletConnect Cloud project ID for RainbowKit |
 | `debug` | `boolean` | `false` | Enable verbose internal logging (secrets are never logged) |
-| `clearSessionKeyOnWagmiDisconnect` | `boolean` | `false` | Clear in-memory AES key on wagmi disconnect |
+| `clearSessionKeyOnWagmiDisconnect` | `boolean` | `true` | Clear in-memory AES key (and Snap cache) on wagmi disconnect |
 | `onboardingServices` | `OnboardingServices` | `{ mode: 'disabled' }` | Grant and encrypted backup service hooks |
 | `aesKeyChainId` | `7082400 \| 2632500` | — | COTI chain that owns AES onboarding state |
 | `onboardingGrantEnabled` | `boolean` | `true` | When `false`, skip native COTI grant requests |
@@ -199,7 +199,7 @@ This starts the local `coti-snap` server, Snap companion dApp, and wallet exampl
 * The active AES key lives in session-only React state, wallet-bound to prevent cross-account leakage.
 * Encrypted backups are optional; supported persistence is host `localStorage` via `onboardingServices` (remote backup is deprecated).
 * `debug: true` enables verbose logging but **never** logs secret material (AES keys, ciphertext, signatures).
-* Set `clearSessionKeyOnWagmiDisconnect: true` for stricter shared-browser security at the cost of re-fetching the key on reconnect.
+* Set `clearSessionKeyOnWagmiDisconnect: false` only if you want reconnect of the same wallet to keep the in-memory key (weaker on shared browsers).
 
 ## Related docs
 

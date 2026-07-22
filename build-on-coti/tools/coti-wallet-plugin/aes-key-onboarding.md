@@ -103,7 +103,7 @@ Avoid wording such as “recoverable from any wallet using the same address.”
 3. A stored blob alone is not enough to recover the AES key, but possession of **both** the encrypted backup and a matching EIP-712 wrap signature is sufficient. Treat that signature as a sensitive unlock action.
 4. **Cross-app crypto portability.** Origin binding is omitted so the same encrypted blob could be unlocked in another trusted COTI plugin app if that app had the blob. With localStorage-only persistence, each origin keeps its own store — remote shared backup is deprecated. Domain separation is not origin security; only sign the unlock request in official or explicitly trusted COTI applications. See [AES backup security model](aes-backup-security.md#cross-app-restore-crypto-portability).
 5. Manual AES key input is session-only unless **Save Locally** (or Snap persistence) stores it.
-6. Locking private balances clears plaintext session AES state and hides balances. Snap keys and encrypted backups remain intact for the next unlock.
+6. Locking private balances clears plaintext session AES state and hides balances. Wagmi disconnect does the same by default (`clearSessionKeyOnWagmiDisconnect: true`). Snap keys and encrypted backups remain intact for the next unlock.
 
 ## Error handling
 
