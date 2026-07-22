@@ -19,7 +19,7 @@ configureCotiPlugin({
 | --- | --- | --- | --- |
 | `snapId` | `string` | `'npm:@coti-io/coti-snap'` | COTI MetaMask Snap ID |
 | `snapVersion` | `string` | — | Optional Snap version for `wallet_requestSnaps` |
-| `snapInstallEnabled` | `boolean` | `true` | When `false`, skip `wallet_requestSnaps` install/connect |
+| `snapEnabled` | `boolean` | `true` | When `false`, Snap is fully disabled (no install/probe/key use) |
 | `defaultNetworkId` | `string` | — | Enforce a specific network chain ID |
 | `sepoliaRpcUrl` | `string` | — | Sepolia RPC URL for PoD portal operations |
 | `cotiTestnetRpcUrl` | `string` | — | COTI testnet RPC URL for PoD SDK tracking |
@@ -28,10 +28,12 @@ configureCotiPlugin({
 | `clearSessionKeyOnWagmiDisconnect` | `boolean` | `false` | Clear in-memory AES key on wagmi disconnect |
 | `onboardingServices` | `OnboardingServices` | `{ mode: 'disabled' }` | Grant and encrypted backup service hooks |
 | `aesKeyChainId` | `7082400 \| 2632500` | — | COTI chain that owns AES onboarding state |
-| `onboardingGrantMinBalanceWei` | `BigNumberish` | `0` | Native COTI threshold before contract onboarding |
+| `onboardingGrantEnabled` | `boolean` | `true` | When `false`, skip native COTI grant requests |
+| `onboardingGrantMinBalanceWei` | `BigNumberish` | `0.2 COTI` | Native COTI threshold before contract onboarding |
 | `onboardingGrantPollIntervalMs` | `number` | `2000` | Polling interval after grant callback |
 | `onboardingGrantTimeoutMs` | `number` | `60000` | Max wait time after grant callback |
 | `additionalSnapAesWriteOrigins` | `string[]` | `[]` | Extra origins allowed to call Snap `set-aes-key` |
+| `unsafeSkipBackupDeterminismCheck` | `boolean` | `false` | **Unsafe** — skip second-signature restore test before persist |
 
 {% hint style="info" %}
 `aesKeyChainId` accepts only COTI Testnet (`7082400`) or COTI Mainnet (`2632500`). Only COTI chains can hold AES keys.
@@ -39,26 +41,30 @@ configureCotiPlugin({
 
 ## Onboarding services
 
-Optional hooks for native COTI gas grants and encrypted AES backup storage during contract onboarding.
+Optional host-implemented callbacks for encrypted AES backup storage and native COTI gas grants during contract onboarding.
 
-### Supported encrypted backup storage (localStorage)
-
-```tsx
-configureCotiPlugin({
-  onboardingServices: {
-    mode: 'localStorage',
-  },
-});
-```
-
-This is the **only supported and maintained** encrypted-backup path. The plugin stores v2 encrypted blobs in browser `localStorage` under `coti-wallet-plugin:aes-backup:<chainId>:<address>`. See [AES backup security model](aes-backup-security.md).
-
-### Grants (optional)
+The plugin encrypts and decrypts AES backup blobs. It does **not** persist them itself. The **only supported** backup store is browser **`localStorage`**, wired through `mode: 'custom'` callbacks. **Remote AES backup is deprecated.** See [AES backup security model](aes-backup-security.md).
 
 ```tsx
+const backupKey = (address: string, chainId: number) =>
+  `my-app:aes-backup:${chainId}:${address.toLowerCase()}`;
+
 configureCotiPlugin({
   onboardingServices: {
-    mode: 'localStorage',
+    mode: 'custom',
+    fetchEncryptedAesBackup: async ({ address, chainId }) => {
+      const raw = localStorage.getItem(backupKey(address, chainId));
+      return raw ? JSON.parse(raw) : null;
+    },
+    saveEncryptedAesBackup: async ({ address, chainId, backup }) => {
+      localStorage.setItem(backupKey(address, chainId), JSON.stringify(backup));
+    },
+    replaceEncryptedAesBackup: async ({ address, chainId, backup }) => {
+      localStorage.setItem(backupKey(address, chainId), JSON.stringify(backup));
+    },
+    deleteEncryptedAesBackup: async ({ address, chainId }) => {
+      localStorage.removeItem(backupKey(address, chainId));
+    },
     grantNativeCoti: async ({ address, chainId }) => {
       const res = await fetch('https://your-grant-api.example.com', {
         method: 'POST',
@@ -78,16 +84,20 @@ When `grantNativeCoti` is omitted, the plugin may still use the built-in grant U
 | Mode | Behavior |
 | --- | --- |
 | `disabled` | No grant/backup features (default) |
-| `localStorage` | **Supported** — encrypted AES backup in browser localStorage |
-| `custom` | Host callbacks (custom remote backup is **not** supported/maintained) |
+| `custom` | Use the provided callback functions (backup callbacks should use `localStorage`) |
 | `official` | Reserved for stable COTI-hosted APIs |
+
+There is no built-in `mode: 'localStorage'`. The [example app](example-app.md) shows the supported `localStorage` callback pattern.
 
 ### Callback reference
 
 | Callback | Purpose |
 | --- | --- |
-| `grantNativeCoti` | `POST` with `{ address, chainId }` — funds wallet for onboarding gas |
-| `fetchEncryptedAesBackup` / `saveEncryptedAesBackup` / `replaceEncryptedAesBackup` / `deleteEncryptedAesBackup` | Deprecated custom backup hooks — prefer `mode: 'localStorage'` |
+| `fetchEncryptedAesBackup` | Return `EncryptedAesBackup` or `null` for `{ address, chainId }` |
+| `saveEncryptedAesBackup` | Persist a new encrypted backup |
+| `replaceEncryptedAesBackup` | Replace an existing encrypted backup |
+| `deleteEncryptedAesBackup` | Remove a stored backup (best-effort; e.g. after rejecting an outdated blob) |
+| `grantNativeCoti` | Fund wallet for onboarding gas (`{ address, chainId }`) → `GrantResult` |
 
 ### `EncryptedAesBackup` shape
 
@@ -123,7 +133,7 @@ interface GrantResult {
 ```tsx
 configureCotiPlugin({
   snapId: 'npm:@coti-io/coti-snap',
-  snapInstallEnabled: true,
+  snapEnabled: true,
 });
 ```
 
@@ -134,21 +144,19 @@ When developing against a local `coti-snap` server:
 ```tsx
 configureCotiPlugin({
   snapId: 'local:http://localhost:8080',
-  snapInstallEnabled: true,
+  snapEnabled: true,
 });
 ```
 
-### Disable Snap install prompts
-
-If the Snap is pre-installed and you want to skip install/connect prompts:
+### Disable Snap entirely
 
 ```tsx
 configureCotiPlugin({
-  snapInstallEnabled: false,
+  snapEnabled: false,
 });
 ```
 
-An already-installed Snap can still be used for AES key retrieval.
+Unlock continues via encrypted backup restore and/or contract onboarding.
 
 ### Additional Snap write origins
 
@@ -170,11 +178,13 @@ The [example app](https://github.com/coti-io/coti-wallet-plugin/tree/main/exampl
 | --- | --- |
 | `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect Cloud project ID |
 | `VITE_SNAP_ID` | Local Snap dev (`local:http://localhost:8080`) |
-| `VITE_COTI_SNAP_INSTALL_ENABLED` | Enable/disable Snap install |
-| `VITE_AES_BACKUP_API_URL` | Remote encrypted backup API base URL |
+| `VITE_COTI_SNAP_ENABLED` | Enable/disable Snap (`false` disables install, probe, and key use) |
+| `VITE_ONBOARDING_GRANT_ENABLED` | Enable/disable native COTI grant requests (default `true`) |
 | `VITE_GRANT_API_URL_TESTNET` | Testnet native COTI grant API |
 | `VITE_GRANT_API_URL_MAINNET` | Mainnet native COTI grant API |
 | `VITE_ONBOARDING_GRANT_MIN_BALANCE_COTI` | Grant threshold (default `0.2`) |
+
+Encrypted AES backups in the example use host `localStorage` via `onboardingServices` callbacks (`coti-example:aes-backup:<chainId>:<address>`). Remote AES backup is deprecated.
 
 Run the example with local Snap:
 
@@ -187,7 +197,7 @@ This starts the local `coti-snap` server, Snap companion dApp, and wallet exampl
 ## Security notes
 
 * The active AES key lives in session-only React state, wallet-bound to prevent cross-account leakage.
-* Encrypted backups are optional and host-defined.
+* Encrypted backups are optional; supported persistence is host `localStorage` via `onboardingServices` (remote backup is deprecated).
 * `debug: true` enables verbose logging but **never** logs secret material (AES keys, ciphertext, signatures).
 * Set `clearSessionKeyOnWagmiDisconnect: true` for stricter shared-browser security at the cost of re-fetching the key on reconnect.
 

@@ -1,18 +1,12 @@
 # Secure remote AES backup storage
 
 {% hint style="warning" %}
-**Not supported.** Remote / custom AES backup backends are **not** a supported or maintained product path for the COTI Wallet Plugin. The only supported encrypted-backup storage is browser **localStorage** (`onboardingServices.mode: 'localStorage'`). See [AES backup security model](aes-backup-security.md).
+**Deprecated.** Remote AES key backup is **not** a supported product path and is expected to be removed. Do **not** build new integrations against remote AES backup APIs.
 {% endhint %}
 
-This page is retained only as historical design notes. Do not build production integrations against a remote AES backup API for this plugin. Do not prioritize security work on remote backup auth for this product.
+The **only supported** encrypted-backup persistence path is browser **`localStorage`** via host `onboardingServices` callbacks (`mode: 'custom'`). See [AES backup security model](aes-backup-security.md) and [Configuration](configuration.md).
 
-## Supported alternative
-
-```ts
-configureCotiPlugin({
-  onboardingServices: { mode: 'localStorage' },
-});
-```
+This page is retained only so existing links do not break. Ignore remote storage auth helpers and challenge-based API designs for new work.
 
 ## Related docs
 

@@ -45,26 +45,23 @@ Non-Snap wallets show a **Save Locally** switch card in `OnboardModal` (encrypte
 
 ## Example app services
 
-The [example app](example-app.md) configures `onboardingServices` with `mode: 'custom'`.
+The [example app](example-app.md) configures `onboardingServices` with `mode: 'custom'` and implements the backup callbacks with browser `localStorage` (`coti-example:aes-backup:<chainId>:<address>`). That is the **supported** encrypted-backup path.
 
 | Env var | Behavior |
 | --- | --- |
-| `VITE_AES_BACKUP_API_URL` | Uses `GET /aes-backups/:chainId/:address` and `PUT /aes-backups/:chainId/:address`, and also keeps a localStorage encrypted backup copy |
-| unset `VITE_AES_BACKUP_API_URL` | Uses `localStorage` only for encrypted backup blobs |
-| `VITE_GRANT_API_URL_TESTNET` | Testnet `grantNativeCoti` POST URL |
-| `VITE_GRANT_API_URL_MAINNET` | Mainnet `grantNativeCoti` POST URL |
-| one grant URL unset | Skips grant API calls on that chain; onboarding falls through to the normal insufficient-funds path if the wallet has no native COTI |
-| both grant URLs unset | Does not configure a grant service on either chain; onboarding requires the wallet to already have native COTI for gas |
+| `VITE_GRANT_API_URL_TESTNET` | Overrides testnet grant API URL (plugin has a default testnet grant endpoint) |
+| `VITE_GRANT_API_URL_MAINNET` | Mainnet grant API URL (no default — grant skipped on mainnet until set) |
+| `VITE_ONBOARDING_GRANT_ENABLED=false` | Skips grant requests; wallet must already have native COTI for gas |
 
-The example keeps the active AES key in memory. LocalStorage is only a sample backing store for the encrypted backup blob, not the live session key.
+The example keeps the active AES key in memory. LocalStorage only holds the encrypted backup blob, not the live session key.
 
-Manual AES key input uses the same encrypted backup helper as contract onboarding when **Save Locally** is on: the user signs the backup context, the key is encrypted, and the encrypted blob is saved through the configured API or localStorage path. If the user rejects that backup signature, the plugin cancels local save, skips the AES key success screen, and still completes unlock with the session key when balance refresh succeeds.
+Manual AES key input uses the same encrypted backup helper as contract onboarding when **Save Locally** is on: the user signs the backup context, the key is encrypted, and the encrypted blob is saved through the configured host callbacks. If the user rejects that backup signature, the plugin cancels local save, skips the AES key success screen, and still completes unlock with the session key when balance refresh succeeds.
 
 ## Supported wallets for encrypted backup
 
-Signature-derived encrypted backup is a **compatibility fallback**, not a universal recovery mechanism. The **only supported storage** for that backup is browser **localStorage** (`onboardingServices: { mode: 'localStorage' }`). Remote backup APIs are not supported.
+Signature-derived encrypted backup is a **compatibility fallback**, not a universal recovery mechanism. The plugin does not persist backups itself — the host supplies `onboardingServices` callbacks (`mode: 'custom'`). The **only supported** store is browser **`localStorage`**. Remote AES backup is **deprecated**.
 
-Restore works only when the wallet later reproduces **identical effective signing material** for the same EIP-712 backup message. Controlling the same address later is **not** enough by itself. localStorage backups are also same-browser / same-origin only.
+Restore works only when the host can fetch the blob from localStorage and the wallet later reproduces **identical effective signing material** for the same EIP-712 backup message. Controlling the same address later is **not** enough by itself. localStorage backups are same-browser / same-origin only.
 
 Preferred storage order:
 
@@ -104,7 +101,7 @@ Avoid wording such as “recoverable from any wallet using the same address.”
 1. The active AES key is session-only React state and is wallet-bound to prevent cross-account leakage.
 2. Encrypted backups are optional and host-defined through `configureCotiPlugin`. The user can turn **Save Locally** off for non-Snap flows.
 3. A stored blob alone is not enough to recover the AES key, but possession of **both** the encrypted backup and a matching EIP-712 wrap signature is sufficient. Treat that signature as a sensitive unlock action.
-4. **Cross-app restore is intentional.** Origin binding is omitted so the same encrypted blob can be restored by other dApps that use the COTI wallet plugin (with a compatible wallet signature). Domain separation is not origin security; only sign the unlock request in official or explicitly trusted COTI applications. See [AES backup security model](aes-backup-security.md#cross-app-restore-intentional).
+4. **Cross-app crypto portability.** Origin binding is omitted so the same encrypted blob could be unlocked in another trusted COTI plugin app if that app had the blob. With localStorage-only persistence, each origin keeps its own store — remote shared backup is deprecated. Domain separation is not origin security; only sign the unlock request in official or explicitly trusted COTI applications. See [AES backup security model](aes-backup-security.md#cross-app-restore-crypto-portability).
 5. Manual AES key input is session-only unless **Save Locally** (or Snap persistence) stores it.
 6. Locking private balances clears plaintext session AES state and hides balances. Snap keys and encrypted backups remain intact for the next unlock.
 
@@ -124,5 +121,4 @@ Avoid wording such as “recoverable from any wallet using the same address.”
 * [Integration Guide](integration-guide.md)
 * [Configuration](configuration.md)
 * [AES backup security model](aes-backup-security.md)
-* [Secure remote AES backup storage](aes-backup-remote-storage.md)
 * [Example App](example-app.md)

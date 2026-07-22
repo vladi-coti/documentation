@@ -2,19 +2,37 @@
 
 Signature-derived AES key backup is a **compatibility fallback**, not the preferred way to protect COTI privacy keys.
 
-## Supported storage path
+## How storage works
 
-The **only supported and maintained** encrypted-backup storage path is **browser `localStorage`**, enabled with:
+The plugin **encrypts and decrypts** AES backup blobs. It does **not** write them to browser storage itself.
+
+The **only supported** persistence path is browser **`localStorage`**, implemented by the host through `onboardingServices` callbacks (`mode: 'custom'`):
 
 ```ts
+const backupKey = (address: string, chainId: number) =>
+  `coti-example:aes-backup:${chainId}:${address.toLowerCase()}`;
+
 configureCotiPlugin({
-  onboardingServices: { mode: 'localStorage' },
+  onboardingServices: {
+    mode: 'custom',
+    fetchEncryptedAesBackup: async ({ address, chainId }) => {
+      const raw = localStorage.getItem(backupKey(address, chainId));
+      return raw ? JSON.parse(raw) : null;
+    },
+    saveEncryptedAesBackup: async ({ address, chainId, backup }) => {
+      localStorage.setItem(backupKey(address, chainId), JSON.stringify(backup));
+    },
+    replaceEncryptedAesBackup: async ({ address, chainId, backup }) => {
+      localStorage.setItem(backupKey(address, chainId), JSON.stringify(backup));
+    },
+    deleteEncryptedAesBackup: async ({ address, chainId }) => {
+      localStorage.removeItem(backupKey(address, chainId));
+    },
+  },
 });
 ```
 
-Keys are stored as `coti-wallet-plugin:aes-backup:<chainId>:<address>` and contain only the encrypted blob (never the plaintext AES key).
-
-Remote / custom backup backends are **not supported or maintained**. Do not plan security work or production integrations around remote AES backup APIs.
+There is no built-in `mode: 'localStorage'`. See [Configuration](configuration.md). **Remote AES backup is deprecated** and should not be used for new integrations — see [Secure remote AES backup storage](aes-backup-remote-storage.md).
 
 ## Architectural priority
 
@@ -37,19 +55,15 @@ Possession of **both**:
 
 The wrap signature is therefore a **reusable decryption credential** for that backup context, not a one-time proof.
 
-For localStorage this means: any script on the same origin that can read `localStorage` can obtain the blob; decrypting it still requires tricking the user into producing the wrap signature (or already having that signature).
+Any script on the same origin that can read `localStorage` can obtain the blob; decrypting it still requires tricking the user into producing the wrap signature (or already having that signature).
 
-## Cross-app restore (intentional)
+## Cross-app restore (crypto portability)
 
-The wallet plugin is used by **multiple dApps**. Cross-app restore of the **same encrypted blob** is **supported and expected**.
+The wallet plugin is used by **multiple dApps**. **Origin binding is intentionally omitted** from the backup wrap EIP-712 message and domain, so the same encrypted blob can be unlocked by any trusted COTI plugin integration when the wallet reproduces the same signing material.
 
-**Origin binding is intentionally omitted** from the backup wrap EIP-712 message and domain. The unlock protocol is app-agnostic on purpose so that:
+With **localStorage-only** persistence, each dApp origin has its **own** store. A blob saved in App A is not automatically available in App B. Automatic cross-origin restore via a remote backup API is **deprecated** and not a product path.
 
-* App A can create an encrypted backup blob;
-* App B (another official or trusted COTI plugin integration) can restore from that same blob;
-* when the user controls a compatible wallet that reproduces the same EIP-712 signing material.
-
-This is a deliberate **portability vs phishing-resistance** tradeoff. Do not document or imply that “only the dApp that created the backup can unlock it.”
+This is a deliberate **portability vs phishing-resistance** tradeoff at the crypto layer. Users must only approve the unlock signature in official or explicitly trusted COTI applications.
 
 ## Domain separation is not origin binding
 
@@ -77,6 +91,7 @@ Recovery is **not** guaranteed merely because the user controls the same address
 
 Restore only works when:
 
+* the host can fetch the encrypted blob for that address and chain;
 * the wallet reproduces **identical effective signing material** for the same EIP-712 domain + message;
 * the backup format is supported (v2);
 * address and chain bindings match;
@@ -84,7 +99,7 @@ Restore only works when:
 
 Same address with a different signer implementation, MPC policy, smart-account signature scheme, or nondeterministic ECDSA can make an existing backup permanently unrestorable.
 
-localStorage backups are also **same-browser / same-origin**. Clearing site data, another browser, or another device will not restore the blob.
+localStorage backups are **same-browser / same-origin**. Clearing site data, another browser, another device, or another dApp origin will not restore the blob.
 
 ## Determinism check (default on)
 
@@ -93,7 +108,7 @@ Before any `save` / `replace` of a newly created backup, the plugin:
 1. encrypts with signature #1;
 2. requests signature #2 independently;
 3. decrypts the in-memory blob with the key derived from signature #2;
-4. **only then** persists the blob to localStorage.
+4. **only then** calls the host `saveEncryptedAesBackup` / `replaceEncryptedAesBackup` callback (typically writing to `localStorage`).
 
 Escape hatch (unsafe, default `false`):
 
@@ -116,7 +131,7 @@ Other persist outcomes are distinguished as:
 | `cancelled` + `USER_REJECTED` | User rejected a required signature |
 | `failed` + `AES_BACKUP_WALLET_NOT_SUPPORTED` | Wallet produced non-reproducible signing material |
 | `failed` + `AES_BACKUP_CRYPTO_VALIDATION_FAILED` | Encrypt/self-test / validation failure before storage |
-| `failed` + `AES_BACKUP_STORAGE_FAILED` | localStorage (or other storage) write failed after a valid blob was produced |
+| `failed` + `AES_BACKUP_STORAGE_FAILED` | Host localStorage (or storage callback) write failed after a valid blob was produced |
 | `failed` + `NO_PROVIDER` | Wallet provider unavailable |
 
 ## Wallet support policy
@@ -161,9 +176,9 @@ An unbound or partially bound epoch field must not ship in the public format. If
 
 without reinterpretating existing v2 blobs under new semantics.
 
-## Remote storage
+## Remote storage (deprecated)
 
-Remote AES backup APIs are **out of scope**. They are not supported or maintained. Security fixes for encrypted backup apply to the localStorage path and wrap cryptography only. See [Secure remote AES backup storage](aes-backup-remote-storage.md) for the historical note.
+Remote AES key backup is **deprecated** and should not be used for new integrations. Persist encrypted blobs in browser `localStorage` only. See [Secure remote AES backup storage](aes-backup-remote-storage.md) for the deprecation notice.
 
 ## Related docs
 
