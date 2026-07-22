@@ -39,24 +39,26 @@ configureCotiPlugin({
 
 ## Onboarding services
 
-Optional host-implemented callbacks for encrypted AES backup storage and native COTI gas grants during contract onboarding.
+Optional hooks for native COTI gas grants and encrypted AES backup storage during contract onboarding.
+
+### Supported encrypted backup storage (localStorage)
 
 ```tsx
 configureCotiPlugin({
   onboardingServices: {
-    mode: 'custom',
-    fetchEncryptedAesBackup: async ({ address, chainId }) => {
-      const res = await fetch(`/aes-backups/${chainId}/${address}`);
-      if (res.status === 404) return null;
-      return res.json();
-    },
-    saveEncryptedAesBackup: async ({ address, chainId, backup }) => {
-      await fetch(`/aes-backups/${chainId}/${address}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(backup),
-      });
-    },
+    mode: 'localStorage',
+  },
+});
+```
+
+This is the **only supported and maintained** encrypted-backup path. The plugin stores v2 encrypted blobs in browser `localStorage` under `coti-wallet-plugin:aes-backup:<chainId>:<address>`. See [AES backup security model](aes-backup-security.md).
+
+### Grants (optional)
+
+```tsx
+configureCotiPlugin({
+  onboardingServices: {
+    mode: 'localStorage',
     grantNativeCoti: async ({ address, chainId }) => {
       const res = await fetch('https://your-grant-api.example.com', {
         method: 'POST',
@@ -69,38 +71,40 @@ configureCotiPlugin({
 });
 ```
 
+When `grantNativeCoti` is omitted, the plugin may still use the built-in grant URL config (`grantApiUrlTestnet` / `grantApiUrlMainnet`) if grants are enabled.
+
 ### `OnboardingServices` modes
 
 | Mode | Behavior |
 | --- | --- |
-| `disabled` | No grant or backup features (default) |
-| `custom` | Use the provided callback functions |
+| `disabled` | No grant/backup features (default) |
+| `localStorage` | **Supported** — encrypted AES backup in browser localStorage |
+| `custom` | Host callbacks (custom remote backup is **not** supported/maintained) |
 | `official` | Reserved for stable COTI-hosted APIs |
 
 ### Callback reference
 
 | Callback | Purpose |
 | --- | --- |
-| `fetchEncryptedAesBackup` | `GET /aes-backups/:chainId/:address` — returns `EncryptedAesBackup` or `null` |
-| `saveEncryptedAesBackup` | `PUT /aes-backups/:chainId/:address` — stores encrypted backup |
-| `replaceEncryptedAesBackup` | Replace an existing encrypted backup |
 | `grantNativeCoti` | `POST` with `{ address, chainId }` — funds wallet for onboarding gas |
+| `fetchEncryptedAesBackup` / `saveEncryptedAesBackup` / `replaceEncryptedAesBackup` / `deleteEncryptedAesBackup` | Deprecated custom backup hooks — prefer `mode: 'localStorage'` |
 
 ### `EncryptedAesBackup` shape
 
 ```typescript
 interface EncryptedAesBackup {
-  version: 1;
+  version: 2;
   address: string;
   chainId: number;
   signatureKind: 'eip712';
+  kdf: 'hkdf-sha256';
   iv: string;
   ciphertext: string;
   createdAt: string;
 }
 ```
 
-Backup restore requires a wallet EIP-712 signature — a stored blob alone is not enough to recover the AES key.
+Backup restore requires a wallet EIP-712 signature — a stored blob alone is not enough to recover the AES key. Signature-derived backup is only reliable for wallets that reproduce identical EIP-712 signing material; see [Supported wallets for encrypted backup](aes-key-onboarding.md#supported-wallets-for-encrypted-backup) and the full [AES backup security model](aes-backup-security.md).
 
 ### `GrantResult` shape
 
