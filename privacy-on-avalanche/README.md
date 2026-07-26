@@ -40,7 +40,7 @@ This section is the **Avalanche Fuji–first** companion to Privacy on Demand: s
 | Native token | AVAX |
 | RPC | `https://api.avax-test.network/ext/bc/C/rpc` |
 | Explorer | [testnet.snowscan.xyz](https://testnet.snowscan.xyz) |
-| Inbox | `0xAb625bE229F603f6BBF964474AFf6d5487e364De` |
+| Inbox | `0x3b8B70819f27e0438cBcE7f31894f799da52648F` |
 | Private execution | COTI Testnet (`7082400`) |
 | Solidity preset | `PodUserFuji` |
 
